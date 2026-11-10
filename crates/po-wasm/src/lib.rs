@@ -1,6 +1,6 @@
 use po_core::format::{num, parse_num, set_format as core_set_format, NumFormat};
 use po_core::ip::NodeStatus;
-use po_core::lp::graph_data;
+use po_core::lp::{graph_data, prepare, VarMap};
 use po_core::project::ActivitySchedule;
 use po_core::report::Section;
 use po_core::simplex::Status;
@@ -453,6 +453,43 @@ pub fn lp_graph(input: &str) -> String {
         "yLabel": model.var_names[1],
         "lines": lines,
     }))
+}
+
+#[wasm_bindgen]
+pub fn lp_path(input: &str) -> String {
+    let res = parse::<LpInput>(input).and_then(|mut inp| {
+        inp.fit(false);
+        let model = inp.to_model()?;
+        let (mut run, tr, _) = prepare(&model, None, 100.0)?;
+        run.run_all();
+        let mut points: Vec<Value> = Vec::new();
+        let mut last: Option<Vec<f64>> = None;
+        for t in &run.history {
+            let mut colv = vec![0.0; t.col_names.len()];
+            for (i, &bj) in t.basis.iter().enumerate() {
+                colv[bj] = t.rhs[i];
+            }
+            let x: Vec<f64> = tr
+                .vars
+                .iter()
+                .map(|v| match *v {
+                    VarMap::Shifted { col, lower } => colv[col] + lower,
+                    VarMap::Split { plus, minus } => colv[plus] - colv[minus],
+                })
+                .collect();
+            let same = last.as_ref().map(|l| l.iter().zip(&x).all(|(a, b)| (a - b).abs() < 1e-9)).unwrap_or(false);
+            if !same {
+                let z: f64 = model.c.iter().zip(&x).map(|(c, v)| c * v).sum();
+                points.push(json!({ "x": x, "z": z, "phase": t.phase, "iteration": t.iteration }));
+                last = Some(x);
+            }
+        }
+        Ok(json!({ "points": points }))
+    });
+    match res {
+        Ok(v) => ok(v),
+        Err(e) => fail(e),
+    }
 }
 
 #[wasm_bindgen]
