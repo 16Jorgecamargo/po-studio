@@ -7,7 +7,11 @@ name = "tora_rs"
 version = "1.0.0"
 edition = "2021"
 description = "PO Studio - pesquisa operacional"
-license = "MIT"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/16Jorgecamargo/po-studio"
+readme = "README.md"
+keywords = ["operations-research", "linear-programming", "simplex", "optimization", "education"]
+categories = ["science", "mathematics", "algorithms"]
 
 [[bin]]
 name = "po-studio"

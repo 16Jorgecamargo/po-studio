@@ -3,7 +3,8 @@ name = "po-wasm"
 version = "1.0.0"
 edition = "2021"
 description = "WebAssembly bindings that let the PO Studio website run the same solvers as the desktop app"
-license = "MIT"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/16Jorgecamargo/po-studio"
 publish = false
 
 [lib]

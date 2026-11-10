@@ -1,0 +1,22 @@
+name: Sugestão
+description: Novo método, módulo, exemplo, tradução ou melhoria.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: O que você gostaria
+      description: Descreva a ideia. Se for um método de PO, cite a referência (livro, capítulo).
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Para que serve
+      description: Em que aula, exercício ou situação isso ajudaria?
+  - type: checkboxes
+    id: help
+    attributes:
+      label: Contribuição
+      options:
+        - label: Posso ajudar a implementar

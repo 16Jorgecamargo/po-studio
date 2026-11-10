@@ -1,0 +1,60 @@
+name: Erro / Bug
+description: Resultado errado, travamento ou algo que não funciona como deveria.
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: module
+    attributes:
+      label: Módulo
+      options:
+        - Equações lineares
+        - Inversão de matriz
+        - Programação linear
+        - Programação inteira
+        - Modelo de transporte
+        - Árvore geradora mínima
+        - Caminho mais curto
+        - Fluxo máximo
+        - CPM
+        - PERT
+        - Filas
+        - Jogos de soma zero
+        - Outro / geral
+    validations:
+      required: true
+  - type: dropdown
+    id: where
+    attributes:
+      label: Onde aconteceu
+      options:
+        - Site (navegador)
+        - App para macOS
+        - App para Windows
+        - App para Linux
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: O que aconteceu
+      description: Descreva o problema. Capturas de tela ajudam.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: O que era esperado
+      description: Se for um resultado numérico, diga de onde vem a resposta esperada (livro, lista, outro software).
+    validations:
+      required: true
+  - type: textarea
+    id: data
+    attributes:
+      label: Dados do problema
+      description: Cole o conteúdo do arquivo .json salvo pelo PO Studio ou anexe o arquivo.
+      render: json
+  - type: input
+    id: version
+    attributes:
+      label: Versão
+      placeholder: "1.0.0"

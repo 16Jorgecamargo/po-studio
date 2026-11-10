@@ -2,6 +2,15 @@
   "name": "po-studio-web",
   "private": true,
   "version": "1.0.0",
+  "description": "PO Studio website: operations research step by step in the browser, powered by a Rust core compiled to WebAssembly",
+  "license": "MIT OR Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/16Jorgecamargo/po-studio.git",
+    "directory": "web"
+  },
+  "homepage": "https://github.com/16Jorgecamargo/po-studio",
+  "keywords": ["operations-research", "pesquisa-operacional", "linear-programming", "simplex", "webassembly"],
   "type": "module",
   "scripts": {
     "dev": "vite",

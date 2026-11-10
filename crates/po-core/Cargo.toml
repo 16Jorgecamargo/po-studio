@@ -3,7 +3,11 @@ name = "po-core"
 version = "1.0.0"
 edition = "2021"
 description = "PO Studio core: operations research solvers shared by the desktop app and the website"
-license = "MIT"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/16Jorgecamargo/po-studio"
+readme = "../../README.md"
+keywords = ["operations-research", "linear-programming", "simplex", "optimization", "education"]
+categories = ["science", "mathematics", "algorithms"]
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }

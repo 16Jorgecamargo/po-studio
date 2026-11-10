@@ -1,0 +1,34 @@
+cff-version: 1.2.0
+message: "Se usar o PO Studio em aulas ou trabalhos, cite assim. If you use PO Studio, please cite it as below."
+title: "PO Studio: pesquisa operacional passo a passo"
+type: software
+authors:
+  - given-names: Jorge
+    family-names: Camargo
+version: 1.0.0
+repository-code: "https://github.com/16Jorgecamargo/po-studio"
+license:
+  - MIT
+  - Apache-2.0
+abstract: >-
+  PO Studio solves operations research problems step by step, on the desktop
+  (Rust and egui) or in the browser (Rust compiled to WebAssembly). It covers
+  linear systems, matrix inversion, linear programming with the simplex method
+  (all-slack, Big M, two-phase, dual simplex, sensitivity analysis and the
+  graphical method), integer programming by Branch and Bound, the
+  transportation problem, minimum spanning tree, shortest path, maximum flow,
+  CPM, PERT, queueing models and zero-sum games.
+keywords:
+  - operations research
+  - pesquisa operacional
+  - linear programming
+  - simplex method
+  - integer programming
+  - branch and bound
+  - transportation problem
+  - network optimization
+  - CPM
+  - PERT
+  - queueing theory
+  - game theory
+  - education

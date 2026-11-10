@@ -167,7 +167,7 @@ export function Landing() {
 
       <footer className="site-footer">
         <p>
-          PO Studio é código aberto sob a licença MIT. <a href={REPO_URL}>Repositório no GitHub</a>.
+          PO Studio é código aberto sob as licenças MIT e Apache 2.0. <a href={REPO_URL}>Repositório no GitHub</a>.
         </p>
       </footer>
     </div>

@@ -7,3 +7,6 @@ web/dist/
 *.log
 .vercel
 .playwright-mcp/
+MECHANICS.md
+mechanics.json
+*.tsbuildinfo
