@@ -13,7 +13,7 @@ const DOWNLOADS = [
     os: 'macOS',
     detail: 'Apple Silicon e Intel',
     file: 'PO-Studio-<versão>-macos.dmg',
-    how: 'Abra o .dmg e arraste o PO Studio para Aplicativos. Na primeira vez, clique com o botão direito no app e escolha Abrir.',
+    how: 'Abra o .dmg e arraste o PO Studio para Aplicativos. Na primeira vez o macOS bloqueia o app: abra Ajustes do Sistema, Privacidade e Segurança, e clique em Abrir Mesmo Assim.',
   },
   {
     os: 'Windows',

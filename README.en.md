@@ -56,6 +56,8 @@ Both front ends share one solver crate (`crates/po-core`), so the numbers always
 
 Installers are published under [Releases](https://github.com/16Jorgecamargo/po-studio/releases): `.dmg` for macOS (Apple Silicon and Intel), setup and portable `.exe` for Windows, `.deb` and `.tar.gz` for Linux.
 
+The macOS app is not notarized by Apple, so macOS blocks it the first time. Open System Settings → Privacy & Security and click Open Anyway.
+
 ## Build from source
 
 ```

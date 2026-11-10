@@ -58,7 +58,7 @@ Os instaladores ficam em [Releases](https://github.com/16Jorgecamargo/po-studio/
 
 | Sistema | Arquivo | Como instalar |
 |---|---|---|
-| macOS (Apple Silicon e Intel) | `PO-Studio-<versão>-macos.dmg` | Abrir o .dmg e arrastar o PO Studio para Aplicativos. Na primeira vez, clicar com o botão direito no app e escolher Abrir. |
+| macOS (Apple Silicon e Intel) | `PO-Studio-<versão>-macos.dmg` | Abrir o .dmg e arrastar o PO Studio para Aplicativos. Na primeira vez o macOS bloqueia o app, porque ele não tem assinatura paga da Apple: abrir Ajustes do Sistema → Privacidade e Segurança e clicar em Abrir Mesmo Assim. |
 | Windows | `PO-Studio-<versão>-windows-setup.exe` | Executar e seguir o assistente. Também há uma versão portátil `...-windows-portable.exe`. |
 | Linux (Debian/Ubuntu) | `po-studio_<versão>_amd64.deb` | Dar dois cliques ou rodar `sudo apt install ./po-studio_<versão>_amd64.deb`. |
 | Linux (qualquer distribuição) | `PO-Studio-<versão>-linux-x86_64.tar.gz` | Extrair e rodar `./install.sh`. |
