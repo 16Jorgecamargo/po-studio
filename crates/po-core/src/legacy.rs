@@ -141,7 +141,7 @@ fn grid(cells: &[String], cols: usize) -> Vec<Vec<String>> {
 
 fn fail(what: &str, found: usize, expected: &[usize]) -> String {
     let list: Vec<String> = expected.iter().map(|e| e.to_string()).collect();
-    format!("{}: o arquivo tem {} células, mas o formato do original pede {}.", what, found, list.join(" ou "))
+    format!("{}: o arquivo tem {} células, mas o formato do TORA pede {}.", what, found, list.join(" ou "))
 }
 
 pub fn import(text: &str) -> Result<Imported, String> {
@@ -583,7 +583,7 @@ pub fn export(module: &str, data: &Value) -> Result<String, String> {
             }
             (9000, vec![m.to_string(), n.to_string()], cells)
         }
-        _ => return Err("Este módulo não tem formato no programa original.".into()),
+        _ => return Err("Este módulo não tem formato no TORA.".into()),
     };
     let mut out = vec![
         code.to_string(),

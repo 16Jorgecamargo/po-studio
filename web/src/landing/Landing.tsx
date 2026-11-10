@@ -105,7 +105,7 @@ export function Landing() {
             <p>
               Nas iterações do simplex, a coluna que entra recebe marca-texto, a linha que sai fica em vermelho e o pivô é circulado. Avance um quadro por vez, volte, ou mostre todos de uma vez.
             </p>
-            <p>Os arquivos do programa original (.txt) abrem aqui e podem ser salvos de volta no mesmo formato.</p>
+            <p>Os arquivos do TORA (.txt) abrem aqui e podem ser salvos de volta no mesmo formato. Quem estuda pelo livro do Taha continua de onde parou, agora também no Mac, no Linux e no navegador.</p>
           </div>
           <div className="steps-sample sheet">
             <TableauSample />
@@ -142,7 +142,7 @@ export function Landing() {
           <div className="band-intro">
             <h2 id="codigo-t">Código aberto</h2>
             <p>
-              O núcleo de cálculo é escrito em Rust e não depende de interface. O app de computador desenha com egui; este site usa o mesmo núcleo compilado para WebAssembly. Licença MIT.
+              O núcleo de cálculo é escrito em Rust e não depende de interface. O app de computador desenha com egui; este site usa o mesmo núcleo compilado para WebAssembly. Licenças MIT e Apache 2.0.
             </p>
           </div>
           <div className="source-grid">
@@ -167,7 +167,7 @@ export function Landing() {
 
       <footer className="site-footer">
         <p>
-          PO Studio é código aberto sob as licenças MIT e Apache 2.0. <a href={REPO_URL}>Repositório no GitHub</a>.
+          PO Studio é código aberto sob as licenças MIT e Apache 2.0. <a href={REPO_URL}>Repositório no GitHub</a>. Projeto independente, sem vínculo com o autor ou a editora do TORA.
         </p>
       </footer>
     </div>

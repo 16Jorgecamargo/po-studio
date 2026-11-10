@@ -8,7 +8,7 @@
 
 **Pesquisa operacional passo a passo, no navegador ou no computador.** Resolve programação linear pelo método simplex mostrando cada quadro, cada pivô e cada iteração, e cobre os outros temas de um curso de PO: programação inteira, transporte, redes, CPM e PERT, filas e teoria dos jogos.
 
-Feito para estudantes e professores de pesquisa operacional (engenharia de produção, administração, economia, computação) que querem conferir um exercício e entender o caminho até a resposta, não só o número final. Funciona como uma calculadora do método simplex passo a passo, sem cadastro e sem enviar nada para servidor.
+Feito para estudantes e professores de pesquisa operacional (engenharia de produção, administração, economia, computação) que querem conferir um exercício e entender o caminho até a resposta, não só o número final. Funciona como uma calculadora do método simplex passo a passo, sem cadastro e sem enviar nada para servidor. É também uma alternativa livre e de código aberto ao TORA, que abre os mesmos arquivos.
 
 [Read in English](README.en.md)
 
@@ -31,11 +31,17 @@ Feito para estudantes e professores de pesquisa operacional (engenharia de produ
 | Probabilidade | Filas | Modelos (M/M/c):(GD/N/K), nascimento e morte puros |
 | Probabilidade | Jogos de soma zero | Estratégias ótimas por PL e solução gráfica |
 
-Em todos os módulos: iterações passo a passo, gráficos, abrir e salvar problemas (`.json` e o `.txt` do programa original), exportar relatório, formato numérico ajustável e tema claro ou escuro.
+Em todos os módulos: iterações passo a passo, gráficos, abrir e salvar problemas (`.json` e o `.txt` do TORA), exportar relatório, formato numérico ajustável e tema claro ou escuro.
 
 | Branch & Bound no site | Quadro do simplex no app de computador |
 |---|---|
 | ![Árvore de Branch & Bound no site](docs/screenshots/web-branch-and-bound.png) | ![Iterações do simplex com pivô destacado](docs/screenshots/desktop-simplex-iterations.png) |
+
+## Alternativa livre ao TORA
+
+Quem estuda pelo livro *Pesquisa Operacional*, de Hamdy A. Taha, conhece o TORA, o programa que acompanha o livro e só roda no Windows. O PO Studio cobre os mesmos módulos, abre os arquivos `.txt` do TORA e salva de volta no mesmo formato, então dá para continuar os exercícios de onde parou. Roda no Windows, no macOS, no Linux e no navegador.
+
+> O PO Studio é um projeto independente, sem vínculo com o autor ou a editora do TORA. TORA é marca de seus respectivos donos.
 
 ## Duas formas, o mesmo motor
 
@@ -60,7 +66,7 @@ Os instaladores ficam em [Releases](https://github.com/16Jorgecamargo/po-studio/
 ## Estrutura
 
 ```
-crates/po-core   núcleo de cálculo em Rust, sem interface (solvers, relatórios, formato do programa original)
+crates/po-core   núcleo de cálculo em Rust, sem interface (solvers, relatórios, formato `.txt` do TORA)
 crates/po-wasm   ligação do núcleo com o navegador (wasm-bindgen)
 src/             app de computador (egui)
 web/             site (React + TypeScript + Vite)

@@ -49,7 +49,7 @@ export function FileMenu({ module }: { module: ModuleKey }) {
     { label: 'Abrir…', kbd: mod('O'), act: () => openFileDialog() },
     { label: 'Salvar', kbd: mod('S'), act: () => save(module) },
     { label: 'Salvar como…', kbd: mod('S', true), act: () => saveAs(module) },
-    { label: 'Salvar no formato do programa original (.txt)', act: () => saveAs(module, true) },
+    { label: 'Salvar no formato do TORA (.txt)', act: () => saveAs(module, true) },
     'sep',
     { label: 'Exportar relatório (.txt)', act: () => exportReport(module) },
   ];

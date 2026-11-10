@@ -8,7 +8,7 @@
 
 **Operations research, step by step, in the browser or on the desktop.** PO Studio solves linear programming problems with the simplex method and shows every tableau, every pivot and every iteration. It also covers the rest of a typical operations research course: integer programming, the transportation problem, network models, CPM and PERT, queueing theory and game theory.
 
-It is built for students and teachers who want to check an exercise and understand how the answer was reached, not just see the final number. Think of it as a step-by-step simplex calculator that needs no account and sends nothing to a server.
+It is built for students and teachers who want to check an exercise and understand how the answer was reached, not just see the final number. Think of it as a step-by-step simplex calculator that needs no account and sends nothing to a server. It is also a free, open source alternative to TORA that opens the same files.
 
 The interface is in Brazilian Portuguese ("PO" stands for *pesquisa operacional*, operations research). Translations are welcome.
 
@@ -33,11 +33,17 @@ The interface is in Brazilian Portuguese ("PO" stands for *pesquisa operacional*
 | Probability | Queues | (M/M/c):(GD/N/K) models, pure birth and pure death |
 | Probability | Zero-sum games | Optimal strategies via LP and graphical solution |
 
-Every module offers step-by-step iterations, charts, open and save (`.json` and the original program's `.txt` format), report export, adjustable number format and light or dark theme.
+Every module offers step-by-step iterations, charts, open and save (`.json` and TORA's `.txt` format), report export, adjustable number format and light or dark theme.
 
 | Branch & Bound on the website | Simplex tableau in the desktop app |
 |---|---|
 | ![Branch and Bound tree on the website](docs/screenshots/web-branch-and-bound.png) | ![Simplex iterations with the pivot highlighted](docs/screenshots/desktop-simplex-iterations.png) |
+
+## A free alternative to TORA
+
+Students who learn from Hamdy A. Taha's *Operations Research: An Introduction* know TORA, the Windows-only program that ships with the book. PO Studio covers the same modules, opens TORA `.txt` files and saves back to the same format, so you can pick up an exercise where you left off. It runs on Windows, macOS, Linux and in the browser.
+
+> PO Studio is an independent project, not affiliated with the author or the publisher of TORA. TORA is a trademark of its respective owners.
 
 ## Two front ends, one engine
 

@@ -17,7 +17,8 @@ abstract: >-
   (all-slack, Big M, two-phase, dual simplex, sensitivity analysis and the
   graphical method), integer programming by Branch and Bound, the
   transportation problem, minimum spanning tree, shortest path, maximum flow,
-  CPM, PERT, queueing models and zero-sum games.
+  CPM, PERT, queueing models and zero-sum games. It reads and writes TORA
+  files and is not affiliated with TORA.
 keywords:
   - operations research
   - pesquisa operacional
@@ -32,3 +33,4 @@ keywords:
   - queueing theory
   - game theory
   - education
+  - TORA

@@ -307,7 +307,7 @@ impl OrApp {
             (Some(p), false) => Some(p.clone()),
             _ => rfd::FileDialog::new()
                 .add_filter("Problema PO Studio", &["json"])
-                .add_filter("Arquivo do programa original", &["txt"])
+                .add_filter("Arquivo do TORA", &["txt"])
                 .set_file_name(format!("{}.json", self.modules[idx].key()))
                 .save_file(),
         };
@@ -346,7 +346,7 @@ impl OrApp {
         let Some(path) = rfd::FileDialog::new()
             .add_filter("Problemas", &["json", "txt"])
             .add_filter("Problema PO Studio", &["json"])
-            .add_filter("Arquivo do programa original", &["txt"])
+            .add_filter("Arquivo do TORA", &["txt"])
             .pick_file()
         else {
             return;
@@ -366,7 +366,7 @@ impl OrApp {
             Err(_) if crate::legacy::looks_legacy(&text) => match crate::legacy::import(&text) {
                 Ok(imp) => serde_json::json!({ "module": imp.module, "data": imp.data }),
                 Err(e) => {
-                    self.status = Some((format!("Arquivo do programa original não reconhecido: {}", e), true));
+                    self.status = Some((format!("Arquivo do TORA não reconhecido: {}", e), true));
                     return;
                 }
             },

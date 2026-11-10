@@ -32,6 +32,6 @@ pub const MODULES: [ModuleInfo; 12] = [
 ];
 
 pub const QUEUE_HINT: &str = "Modelo (M/M/c):(GD/N/K). Use ∞ para fila ou fonte infinita. Nascimento puro: μ = 0 e λ = λt. Morte pura: λ = 0, μ = μt e N = tamanho inicial.";
-pub const LP_HINT: &str = "Tamanho máximo: 100 (como no original). Deixe em branco para zero; use ∞ ou inf para infinito.";
+pub const LP_HINT: &str = "Tamanho máximo: 100 (como no TORA). Deixe em branco para zero; use ∞ ou inf para infinito.";
 pub const PROJECT_HINT: &str = "Cada atividade liga um nó (evento) a outro. Numere os nós a partir de 1.";
 pub const GAME_HINT: &str = "Os pagamentos são do ponto de vista do jogador A (linhas).";

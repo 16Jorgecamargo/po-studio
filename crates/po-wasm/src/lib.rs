@@ -544,7 +544,7 @@ pub fn open_file(text: &str) -> String {
         Ok(v) => v,
         Err(_) if po_core::legacy::looks_legacy(text) => match po_core::legacy::import(text) {
             Ok(imp) => json!({ "module": imp.module, "data": imp.data }),
-            Err(e) => return fail(format!("Arquivo do programa original não reconhecido: {}", e)),
+            Err(e) => return fail(format!("Arquivo do TORA não reconhecido: {}", e)),
         },
         Err(_) => return fail("O arquivo não é um problema válido."),
     };

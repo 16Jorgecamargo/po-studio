@@ -22,7 +22,7 @@ interface PickerWindow {
 const handles = new Map<ModuleKey, FileHandleLike>();
 
 const JSON_TYPE = { description: 'Problema PO Studio', accept: { 'application/json': ['.json'] } };
-const TXT_TYPE = { description: 'Arquivo do programa original', accept: { 'text/plain': ['.txt'] } };
+const TXT_TYPE = { description: 'Arquivo do TORA', accept: { 'text/plain': ['.txt'] } };
 
 function picker(): PickerWindow {
   return window as unknown as PickerWindow;
