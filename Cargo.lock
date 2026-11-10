@@ -1708,6 +1708,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "po-core"
+version = "1.0.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "po-wasm"
+version = "1.0.0"
+dependencies = [
+ "po-core",
+ "serde",
+ "serde_json",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "polling"
 version = "3.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2280,6 +2298,7 @@ version = "1.0.0"
 dependencies = [
  "eframe",
  "image",
+ "po-core",
  "rfd",
  "serde",
  "serde_json",

@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 #[derive(Clone, Debug)]
 pub struct Activity {
     pub name: String,
@@ -6,7 +8,7 @@ pub struct Activity {
     pub duration: f64,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ActivitySchedule {
     pub name: String,
     pub from: usize,
@@ -21,7 +23,7 @@ pub struct ActivitySchedule {
     pub critical: bool,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize)]
 pub struct CpmResult {
     pub nodes: Vec<usize>,
     pub early: Vec<f64>,

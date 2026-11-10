@@ -1,9 +1,11 @@
 use crate::lp::{lp_status_only, LpModel};
 use crate::simplex::{Sense, Status};
+use serde::Serialize;
 
 pub const MAX_SUBPROBLEMS: usize = crate::mechanics::BB_MAX_SUBPROBLEMS;
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize)]
+#[serde(rename_all = "snake_case")]
 pub enum NodeStatus {
     Infeasible,
     Unbounded,
@@ -12,7 +14,7 @@ pub enum NodeStatus {
     Branched,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize)]
 pub struct BbNode {
     pub id: usize,
     pub parent: Option<usize>,
@@ -25,7 +27,7 @@ pub struct BbNode {
     pub improved: bool,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize)]
 pub struct BbResult {
     pub nodes: Vec<BbNode>,
     pub best: Option<usize>,

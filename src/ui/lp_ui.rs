@@ -1,104 +1,11 @@
 use super::common::*;
 use super::{iterations_view, motion, results_view, solve_bar, tab_bar, title_row, Module, Tab};
-use crate::format::{num, parse_num, parse_or_zero};
-use crate::ip::{branch_and_bound, BbResult, NodeStatus};
-use crate::lp::{self, graph_data, LpModel, LpReport};
-use crate::simplex::{ColKind, Method, Rel, Sense, SimplexRun, Status, Tableau};
+use crate::format::num;
+use crate::ip::{BbResult, NodeStatus};
+use crate::lp::{graph_data, LpModel};
+use crate::studio::lp::{fmt_x, graph_summary, line_in_box, node_status_text, path_text};
+pub use crate::studio::lp::{IterMethod, LpInput};
 use eframe::egui::{self, Align2, Pos2, RichText, Shape, Stroke, Vec2};
-use serde::{Deserialize, Serialize};
-
-#[derive(Clone, Serialize, Deserialize)]
-pub struct LpInput {
-    pub title: String,
-    pub maximize: bool,
-    pub nvars: usize,
-    pub ncons: usize,
-    pub var_names: Vec<String>,
-    pub obj: Vec<String>,
-    pub con_names: Vec<String>,
-    pub a: Vec<Vec<String>>,
-    pub rel: Vec<String>,
-    pub rhs: Vec<String>,
-    pub lower: Vec<String>,
-    pub upper: Vec<String>,
-    pub unrestricted: Vec<bool>,
-    pub integer: Vec<bool>,
-}
-
-impl LpInput {
-    fn blank(nv: usize, nc: usize, integer: bool) -> Self {
-        let mut s = Self {
-            title: String::new(),
-            maximize: true,
-            nvars: nv,
-            ncons: nc,
-            var_names: vec![],
-            obj: vec![],
-            con_names: vec![],
-            a: vec![],
-            rel: vec![],
-            rhs: vec![],
-            lower: vec![],
-            upper: vec![],
-            unrestricted: vec![],
-            integer: vec![],
-        };
-        s.fit(integer);
-        s
-    }
-
-    fn fit(&mut self, integer_default: bool) {
-        resize_names(&mut self.var_names, self.nvars, "x");
-        resize_vec(&mut self.obj, self.nvars, String::new());
-        resize_names(&mut self.con_names, self.ncons, "Restr ");
-        resize_grid(&mut self.a, self.ncons, self.nvars);
-        resize_vec(&mut self.rel, self.ncons, "<=".to_string());
-        resize_vec(&mut self.rhs, self.ncons, String::new());
-        resize_vec(&mut self.lower, self.nvars, "0".to_string());
-        resize_vec(&mut self.upper, self.nvars, "∞".to_string());
-        resize_vec(&mut self.unrestricted, self.nvars, false);
-        resize_vec(&mut self.integer, self.nvars, integer_default);
-    }
-
-    pub fn to_model(&self) -> Result<LpModel, String> {
-        let n = self.nvars;
-        let mut lower = Vec::new();
-        let mut upper = Vec::new();
-        for j in 0..n {
-            let lo = if self.unrestricted[j] {
-                f64::NEG_INFINITY
-            } else {
-                crate::mechanics::bound_value(parse_num(&self.lower[j]).unwrap_or(0.0))
-            };
-            let up = crate::mechanics::bound_value(parse_num(&self.upper[j]).unwrap_or(f64::INFINITY));
-            if !self.unrestricted[j] && lo < 0.0 && lo.is_infinite() {
-                return Err("Variável não negativa: o limite inferior deve ser finito.".into());
-            }
-            lower.push(lo);
-            upper.push(up);
-        }
-        Ok(LpModel {
-            sense: if self.maximize { Sense::Max } else { Sense::Min },
-            var_names: self.var_names.clone(),
-            c: self.obj.iter().map(|s| parse_or_zero(s)).collect(),
-            a: self.a.iter().map(|r| r.iter().map(|s| parse_or_zero(s)).collect()).collect(),
-            rel: self.rel.iter().map(|s| Rel::parse(s)).collect(),
-            b: self.rhs.iter().map(|s| parse_or_zero(s)).collect(),
-            con_names: self.con_names.clone(),
-            lower,
-            upper,
-            integer: self.integer.clone(),
-        })
-    }
-}
-
-#[derive(Clone, Copy, PartialEq, Eq)]
-enum IterMethod {
-    Auto,
-    M,
-    TwoPhase,
-    Dual,
-}
 
 pub struct LpModule {
     pub integer_mode: bool,
@@ -151,11 +58,11 @@ impl LpModule {
             self.solve_ip(model);
             return;
         }
-        match lp::solve(&model, None, 100.0) {
+        match crate::studio::lp::lp_results(&self.input, &model) {
             Err(e) => self.error = Some(e),
             Ok(sol) => {
-                self.notice = sol.notice.clone();
-                self.results = summary_sections(&self.input, &model, &sol.report);
+                self.notice = sol.notice;
+                self.results = sol.results;
                 self.build_iterations(&model);
                 self.graph_visible = vec![true; model.a.len()];
                 self.tab = Tab::Results;
@@ -164,109 +71,27 @@ impl LpModule {
     }
 
     fn build_iterations(&mut self, model: &LpModel) {
-        let big_m = parse_num(&self.big_m).unwrap_or(crate::mechanics::BIG_M_DEFAULT);
-        let method = match self.method {
-            IterMethod::Auto => None,
-            IterMethod::M => Some(Method::MMethod),
-            IterMethod::TwoPhase => Some(Method::TwoPhase),
-            IterMethod::Dual => Some(Method::DualSimplex),
-        };
-        match lp::prepare(model, method, big_m) {
+        match crate::studio::lp::lp_iterations(model, self.method, &self.big_m) {
             Err(e) => {
                 self.iterations.clear();
                 self.error = Some(e);
             }
-            Ok((mut run, _tr, notice)) => {
-                run.run_all();
-                if notice.is_some() && self.notice.is_none() {
-                    self.notice = notice.clone();
+            Ok(it) => {
+                if it.notice.is_some() && self.notice.is_none() {
+                    self.notice = it.notice;
                 }
-                let mut secs: Vec<Section> = Vec::new();
-                if let Some(nt) = notice {
-                    let mut s = Section::new("Aviso");
-                    s.note(nt);
-                    secs.push(s);
-                }
-                secs.extend(tableau_sections(&run, model.sense));
-                self.iterations = secs;
+                self.iterations = it.sections;
                 self.shown = 1;
             }
         }
     }
 
     fn solve_ip(&mut self, model: LpModel) {
-        let res = branch_and_bound(&model);
-        let mut out = Vec::new();
-        let mut s = Section::new("Programação inteira: resumo do Branch & Bound");
-        match res.best {
-            Some(id) => {
-                let node = &res.nodes[id - 1];
-                s.line(format!(
-                    "Solução ótima encontrada no subproblema {}, valor objetivo = {}",
-                    id,
-                    num(node.z.unwrap_or(0.0))
-                ));
-                if let Some(last) = res.nodes.last() {
-                    s.line(format!("Resultado verificado na iteração {}", last.id));
-                }
-                out.push(s);
-                let mut v = Section::new("Solução ótima").headers(&["Variável", "Valor", "Coef. obj.", "Contribuição"]);
-                for j in 0..model.c.len() {
-                    v.row(vec![
-                        cs(model.var_names[j].clone(), CellStyle::Head),
-                        cs(num(node.x[j]), CellStyle::Bold),
-                        n(model.c[j]),
-                        n(model.c[j] * node.x[j]),
-                    ]);
-                }
-                out.push(v);
-            }
-            None => {
-                s.line(if res.nodes.iter().any(|n| n.status == NodeStatus::Unbounded) {
-                    "A solução é ilimitada.".to_string()
-                } else {
-                    "Nenhuma solução viável encontrada.".to_string()
-                });
-                out.push(s);
-            }
-        }
-        if res.aborted {
-            let mut a = Section::new("Busca excessiva");
-            a.note("O número de subproblemas examinados excedeu 32.000. Execução interrompida.");
-            out.push(a);
-        }
-        if !res.improvements.is_empty() {
-            let mut f = Section::new("Soluções viáveis (em ordem de melhoria)").headers(&["Subproblema", "Valor objetivo", "Solução"]);
-            for &id in &res.improvements {
-                let nd = &res.nodes[id - 1];
-                f.row(vec![
-                    c(format!("N{}", id)),
-                    n(nd.z.unwrap_or(0.0)),
-                    c(fmt_x(&model.var_names, &nd.x)),
-                ]);
-            }
-            out.push(f);
-        }
-        let mut it = Vec::new();
-        for nd in &res.nodes {
-            let mut s = Section::new(format!("Subproblema N{}", nd.id)).sub(match nd.parent {
-                Some(p) => format!("Ramo a partir de N{}: {}", p, nd.branch),
-                None => "LP contínuo (sem restrições de integralidade)".into(),
-            });
-            let status = node_status_text(nd.status, nd.branch_var.map(|j| model.var_names[j].as_str()));
-            s.line(format!("Situação: {}", status));
-            if let Some(z) = nd.z {
-                s.line(format!("Valor objetivo z = {}", num(z)));
-            }
-            if !nd.x.is_empty() {
-                s.line(format!("Solução: {}", fmt_x(&model.var_names, &nd.x)));
-            }
-            it.push(s);
-        }
-        self.iterations = it;
+        let out = crate::studio::lp::ip_solve(&model);
+        self.iterations = out.iterations;
         self.shown = 1;
-        self.results = out;
-        self.bb = Some(res);
+        self.results = out.results;
+        self.bb = Some(out.bb);
         self.bb_model = Some(model);
         self.bb_selected = None;
         self.tab = Tab::Results;
@@ -285,7 +110,7 @@ impl LpModule {
                     self.input.fit(integer_mode);
                 }
             });
-            ui.label(RichText::new("Tamanho máximo: 100 (como no original). Deixe em branco para zero; use ∞ ou inf para infinito.").small().color(text_muted()));
+            ui.label(RichText::new(crate::studio::LP_HINT).small().color(text_muted()));
         });
         ui.add_space(10.0);
         let nv = self.input.nvars;
@@ -373,13 +198,8 @@ impl LpModule {
             ui.horizontal_wrapped(|ui| {
                 ui.label(RichText::new("Método das iterações:").color(text_muted()));
                 let mut changed = false;
-                for (m, l) in [
-                    (IterMethod::Auto, "Automático"),
-                    (IterMethod::M, "M grande"),
-                    (IterMethod::TwoPhase, "Duas fases"),
-                    (IterMethod::Dual, "Dual simplex"),
-                ] {
-                    changed |= ui.radio_value(&mut self.method, m, l).changed();
+                for m in IterMethod::ALL {
+                    changed |= ui.radio_value(&mut self.method, m, m.label()).changed();
                 }
                 if self.method == IterMethod::M {
                     ui.label("Valor de M:");
@@ -423,18 +243,7 @@ impl LpModule {
                     ui.checkbox(&mut self.graph_visible[i], RichText::new(format!("({}) {}", i + 1, model.con_names[i])).color(series(i)));
                 }
             });
-            let summary = match (g.status, g.optimum) {
-                (Status::Optimal, Some((x1, x2))) => format!(
-                    "Ótimo: {} = {}, {} = {}, z = {}",
-                    model.var_names[0],
-                    num(x1),
-                    model.var_names[1],
-                    num(x2),
-                    num(g.z)
-                ),
-                (Status::Unbounded, _) => "A solução ótima é ILIMITADA.".into(),
-                _ => "O problema não tem solução viável.".into(),
-            };
+            let summary = graph_summary(&model, &g);
             ui.label(RichText::new(summary).font(semibold(15.0)).color(text_strong()));
         });
         ui.add_space(10.0);
@@ -603,206 +412,6 @@ impl LpModule {
     }
 }
 
-fn path_text(nodes: &[crate::ip::BbNode], id: usize) -> String {
-    let mut parts = Vec::new();
-    let mut cur = Some(id);
-    while let Some(i) = cur {
-        let nd = &nodes[i - 1];
-        if nd.parent.is_some() {
-            parts.push(nd.branch.clone());
-        }
-        cur = nd.parent;
-    }
-    parts.reverse();
-    if parts.is_empty() {
-        "nenhum (LP contínuo)".into()
-    } else {
-        parts.join(", ")
-    }
-}
-
-fn node_status_text(s: NodeStatus, var: Option<&str>) -> String {
-    match s {
-        NodeStatus::Infeasible => "solução inviável, sondado".into(),
-        NodeStatus::Unbounded => "ilimitado".into(),
-        NodeStatus::Integer => "solução inteira".into(),
-        NodeStatus::Fathomed => "sondado (valor não melhora a melhor solução)".into(),
-        NodeStatus::Branched => format!("ramificado na variável {}", var.unwrap_or("?")),
-    }
-}
-
-fn fmt_x(names: &[String], x: &[f64]) -> String {
-    names
-        .iter()
-        .zip(x.iter())
-        .map(|(n, v)| format!("{} = {}", n, num(*v)))
-        .collect::<Vec<_>>()
-        .join(", ")
-}
-
-fn line_in_box(a: f64, b: f64, r: f64, xmax: f64, ymax: f64) -> Option<((f64, f64), (f64, f64))> {
-    let mut pts: Vec<(f64, f64)> = Vec::new();
-    let mut push = |p: (f64, f64)| {
-        if p.0 >= -1e-9 && p.0 <= xmax + 1e-9 && p.1 >= -1e-9 && p.1 <= ymax + 1e-9 {
-            if !pts.iter().any(|q| (q.0 - p.0).abs() < 1e-9 && (q.1 - p.1).abs() < 1e-9) {
-                pts.push(p);
-            }
-        }
-    };
-    if b.abs() > 1e-12 {
-        push((0.0, r / b));
-        push((xmax, (r - a * xmax) / b));
-    }
-    if a.abs() > 1e-12 {
-        push((r / a, 0.0));
-        push(((r - b * ymax) / a, ymax));
-    }
-    if pts.len() >= 2 {
-        Some((pts[0], pts[1]))
-    } else {
-        None
-    }
-}
-
-fn summary_sections(input: &LpInput, model: &LpModel, rep: &LpReport) -> Vec<Section> {
-    let mut out = Vec::new();
-    let mut head = Section::new("Resumo da solução: Programação Linear").sub(format!(
-        "{}. {}. Iterações: {}",
-        if input.title.is_empty() { "Sem título" } else { input.title.as_str() },
-        rep.method.label(),
-        rep.iterations
-    ));
-    match rep.status {
-        Status::Optimal => head.line(format!(
-            "Valor objetivo ({}) = {}",
-            if model.sense == Sense::Max { "Max" } else { "Min" },
-            num(rep.z)
-        )),
-        Status::Unbounded => head.line("A solução ótima é ilimitada.".to_string()),
-        Status::Infeasible => head.line("O problema não tem solução viável.".to_string()),
-    }
-    if rep.alternative {
-        head.note("Há soluções ótimas alternativas (veja a aba Iterações: variável não básica com zj-cj = 0 no último quadro).");
-    }
-    out.push(head);
-    if rep.status == Status::Unbounded || rep.status == Status::Infeasible {
-        return out;
-    }
-    let mut v = Section::new("Variáveis").headers(&["Variável", "Valor", "Coef. obj.", "Contribuição"]);
-    for r in &rep.vars {
-        v.row(vec![cs(r.name.clone(), CellStyle::Head), cs(num(r.value), CellStyle::Bold), n(r.c), n(r.contribution)]);
-    }
-    out.push(v);
-    let mut cns = Section::new("Restrições").headers(&["Restrição", "LE", "", "LD", "Folga(-)/Excesso(+)"]);
-    for r in &rep.cons {
-        let sl = match r.rel {
-            Rel::Le => format!("{}-", num(r.slack)),
-            Rel::Ge => format!("{}+", num(r.slack)),
-            Rel::Eq => num(0.0),
-        };
-        cns.row(vec![cs(r.name.clone(), CellStyle::Head), n(r.lhs), c(r.rel.symbol()), n(r.rhs), c(sl)]);
-    }
-    out.push(cns);
-    let mut s1 = Section::new("Análise de sensibilidade: coeficientes do objetivo").headers(&["Variável", "Coef. atual", "Coef. mín.", "Coef. máx.", "Custo reduzido"]);
-    for r in &rep.vars {
-        s1.row(vec![
-            cs(r.name.clone(), CellStyle::Head),
-            n(r.c),
-            r.cmin.map(n).unwrap_or_else(|| c("–")),
-            r.cmax.map(n).unwrap_or_else(|| c("–")),
-            r.reduced.map(|v| n(v.abs())).unwrap_or_else(|| c("–")),
-        ]);
-    }
-    out.push(s1);
-    let mut s2 = Section::new("Análise de sensibilidade: lado direito").headers(&["Restrição", "Preço dual", "LD mín.", "LD atual", "LD máx."]);
-    for r in &rep.cons {
-        s2.row(vec![cs(r.name.clone(), CellStyle::Head), n(r.dual), n(r.rmin), n(r.rhs), n(r.rmax)]);
-    }
-    s2.note("Preço dual = variação do valor objetivo por unidade de aumento no lado direito, dentro do intervalo [mín., máx.].");
-    out.push(s2);
-    out
-}
-
-fn tableau_sections(run: &SimplexRun, sense: Sense) -> Vec<Section> {
-    let mut out = Vec::new();
-    for (k, t) in run.history.iter().enumerate() {
-        out.push(tableau_section(t, k, run.method, sense));
-    }
-    out
-}
-
-fn tableau_section(t: &Tableau, k: usize, method: Method, _sense: Sense) -> Section {
-    let phase = match t.phase {
-        1 => ": Fase 1".to_string(),
-        2 => ": Fase 2".to_string(),
-        _ => String::new(),
-    };
-    let mut s = Section::new(format!("Iteração {}{}", k + 1, phase));
-    let mut sub = method.label().to_string();
-    if let Some(e) = t.entering {
-        sub.push_str(&format!(". Entra: {}", t.col_names[e]));
-    }
-    if let Some(r) = t.leaving {
-        sub.push_str(&format!(". Sai: {}", t.col_names[t.basis[r]]));
-    }
-    s.subtitle = sub;
-    let mut headers = vec!["Básica".to_string()];
-    for (j, name) in t.col_names.iter().enumerate() {
-        if t.blocked[j] {
-            headers.push(format!("{} (bloq.)", name));
-        } else {
-            headers.push(name.clone());
-        }
-    }
-    headers.push("Solução".into());
-    s.headers = headers;
-    let zlabel = if t.phase == 1 {
-        "r (min)".to_string()
-    } else if t.sense == Sense::Max {
-        "z (max)".to_string()
-    } else {
-        "z (min)".to_string()
-    };
-    let mut zr = vec![cs(zlabel, CellStyle::Bold)];
-    for j in 0..t.col_names.len() {
-        let st = if Some(j) == t.entering {
-            CellStyle::Green
-        } else if t.blocked[j] {
-            CellStyle::Muted
-        } else {
-            CellStyle::Bold
-        };
-        zr.push(cs(if t.blocked[j] { "bloq.".into() } else { num(t.zrow[j]) }, st));
-    }
-    zr.push(cs(num(t.zval), CellStyle::Bold));
-    s.row(zr);
-    for i in 0..t.rows.len() {
-        let leaving = Some(i) == t.leaving;
-        let bname = t.col_names[t.basis[i]].clone();
-        let mut row = vec![cs(bname, if leaving { CellStyle::Red } else { CellStyle::Head })];
-        for j in 0..t.col_names.len() {
-            let st = if leaving && Some(j) == t.entering {
-                CellStyle::Pivot
-            } else if leaving {
-                CellStyle::Red
-            } else if Some(j) == t.entering {
-                CellStyle::Green
-            } else if t.col_kind[j] == ColKind::Artificial && t.blocked[j] {
-                CellStyle::Muted
-            } else {
-                CellStyle::Normal
-            };
-            row.push(cs(num(t.rows[i][j]), st));
-        }
-        row.push(cs(num(t.rhs[i]), if leaving { CellStyle::Red } else { CellStyle::Normal }));
-        s.row(row);
-    }
-    if !t.note.is_empty() {
-        s.note(t.note.clone());
-    }
-    s
-}
-
 impl Module for LpModule {
     fn solve_now(&mut self) {
         self.solve();
@@ -852,15 +461,7 @@ impl Module for LpModule {
     }
 
     fn report(&self) -> Option<String> {
-        if self.results.is_empty() {
-            return None;
-        }
-        let mut all = self.results.clone();
-        if !self.integer_mode {
-            all.extend(self.iterations.iter().cloned());
-        }
-        let t = if self.integer_mode { "PROGRAMAÇÃO INTEIRA" } else { "PROGRAMAÇÃO LINEAR" };
-        Some(sections_to_text(&format!("{}: {}", t, self.input.title), &all))
+        crate::studio::lp::report(&self.input, self.integer_mode, &self.results, &self.iterations)
     }
 
     fn save_json(&self) -> serde_json::Value {
@@ -889,22 +490,7 @@ impl Module for LpModule {
     }
 
     fn load_example(&mut self) {
-        let mut inp = LpInput::blank(2, 3, self.integer_mode);
-        if self.integer_mode {
-            inp.title = "Exemplo inteiro: dois produtos".into();
-            inp.obj = vec!["7".into(), "5".into()];
-            inp.a = vec![vec!["3".into(), "2".into()], vec!["1".into(), "3".into()], vec!["0".into(), "1".into()]];
-            inp.rel = vec!["<=".into(), "<=".into(), "<=".into()];
-            inp.rhs = vec!["13.5".into(), "12".into(), "3.5".into()];
-        } else {
-            inp.title = "Exemplo: mix de duas tintas".into();
-            inp.obj = vec!["4".into(), "3".into()];
-            inp.a = vec![vec!["2".into(), "1".into()], vec!["1".into(), "3".into()], vec!["1".into(), "0".into()]];
-            inp.rel = vec!["<=".into(), "<=".into(), "<=".into()];
-            inp.rhs = vec!["10".into(), "15".into(), "4".into()];
-        }
-        inp.con_names = vec!["Recurso A".into(), "Recurso B".into(), "Recurso C".into()];
-        self.input = inp;
+        self.input = LpInput::example(self.integer_mode);
         self.results.clear();
         self.iterations.clear();
         self.bb = None;

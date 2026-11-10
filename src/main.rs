@@ -1,21 +1,10 @@
 #![cfg_attr(all(not(debug_assertions), target_os = "windows"), windows_subsystem = "windows")]
 
 mod app;
-mod format;
-mod game;
-mod ip;
-mod legacy;
-mod linalg;
-mod lp;
-mod mechanics;
-mod network;
-mod project;
-mod queue;
-mod simplex;
-mod transport;
 mod ui;
-#[cfg(test)]
-mod tests;
+
+#[allow(unused_imports)]
+use po_core::{format, game, ip, legacy, linalg, lp, mechanics, network, project, queue, report, simplex, studio, transport};
 
 use std::path::PathBuf;
 

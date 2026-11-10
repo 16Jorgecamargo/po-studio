@@ -2,90 +2,7 @@ use super::motion;
 pub use super::theme::*;
 use eframe::egui::{self, Align2, Color32, CornerRadius, Pos2, Rect, RichText, Sense, Stroke, StrokeKind, Vec2};
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum CellStyle {
-    Normal,
-    Head,
-    Green,
-    Red,
-    Pivot,
-    Bold,
-    Muted,
-    RedText,
-}
-
-#[derive(Clone, Debug)]
-pub struct Cell {
-    pub text: String,
-    pub style: CellStyle,
-}
-
-impl Cell {
-    pub fn new(text: impl Into<String>) -> Self {
-        Self {
-            text: text.into(),
-            style: CellStyle::Normal,
-        }
-    }
-    pub fn styled(text: impl Into<String>, style: CellStyle) -> Self {
-        Self {
-            text: text.into(),
-            style,
-        }
-    }
-}
-
-pub fn c(text: impl Into<String>) -> Cell {
-    Cell::new(text)
-}
-
-pub fn cs(text: impl Into<String>, style: CellStyle) -> Cell {
-    Cell::styled(text, style)
-}
-
-pub fn n(v: f64) -> Cell {
-    Cell::new(crate::format::num(v))
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct Section {
-    pub title: String,
-    pub subtitle: String,
-    pub headers: Vec<String>,
-    pub rows: Vec<Vec<Cell>>,
-    pub notes: Vec<String>,
-    pub lines: Vec<String>,
-}
-
-impl Section {
-    pub fn new(title: impl Into<String>) -> Self {
-        Self {
-            title: title.into(),
-            ..Default::default()
-        }
-    }
-    pub fn sub(mut self, s: impl Into<String>) -> Self {
-        self.subtitle = s.into();
-        self
-    }
-    pub fn headers(mut self, h: &[&str]) -> Self {
-        self.headers = h.iter().map(|s| s.to_string()).collect();
-        self
-    }
-    pub fn headers_owned(mut self, h: Vec<String>) -> Self {
-        self.headers = h;
-        self
-    }
-    pub fn row(&mut self, r: Vec<Cell>) {
-        self.rows.push(r);
-    }
-    pub fn note(&mut self, s: impl Into<String>) {
-        self.notes.push(s.into());
-    }
-    pub fn line(&mut self, s: impl Into<String>) {
-        self.lines.push(s.into());
-    }
-}
+pub use po_core::report::{Cell, CellStyle, Section};
 
 pub fn card<R>(ui: &mut egui::Ui, add: impl FnOnce(&mut egui::Ui) -> R) -> R {
     egui::Frame::new()
@@ -256,61 +173,6 @@ fn tableau(ui: &mut egui::Ui, s: &Section, id: egui::Id) {
     }
 }
 
-pub fn sections_to_text(title: &str, sections: &[Section]) -> String {
-    let mut out = String::new();
-    out.push_str(title);
-    out.push('\n');
-    out.push_str(&"=".repeat(title.chars().count().max(10)));
-    out.push_str("\n\n");
-    for s in sections {
-        if !s.title.is_empty() {
-            out.push_str(&s.title);
-            out.push('\n');
-        }
-        if !s.subtitle.is_empty() {
-            out.push_str(&s.subtitle);
-            out.push('\n');
-        }
-        for l in &s.lines {
-            out.push_str(l);
-            out.push('\n');
-        }
-        let ncol = s.headers.len().max(s.rows.iter().map(|r| r.len()).max().unwrap_or(0));
-        if ncol > 0 {
-            let mut w = vec![0usize; ncol];
-            for (i, h) in s.headers.iter().enumerate() {
-                w[i] = w[i].max(h.chars().count());
-            }
-            for r in &s.rows {
-                for (i, cell) in r.iter().enumerate() {
-                    w[i] = w[i].max(cell.text.chars().count());
-                }
-            }
-            let fmt_row = |cells: Vec<String>| -> String {
-                cells
-                    .iter()
-                    .enumerate()
-                    .map(|(i, t)| format!("{:>width$}", t, width = w[i] + 2))
-                    .collect::<String>()
-            };
-            if !s.headers.is_empty() {
-                out.push_str(&fmt_row(s.headers.clone()));
-                out.push('\n');
-            }
-            for r in &s.rows {
-                out.push_str(&fmt_row(r.iter().map(|c| c.text.clone()).collect()));
-                out.push('\n');
-            }
-        }
-        for nt in &s.notes {
-            out.push_str(nt);
-            out.push('\n');
-        }
-        out.push('\n');
-    }
-    out
-}
-
 pub fn stepper(ui: &mut egui::Ui, label: &str, value: &mut usize, min: usize, max: usize) -> bool {
     let mut changed = false;
     ui.horizontal(|ui| {
@@ -348,25 +210,6 @@ pub fn cell_edit(ui: &mut egui::Ui, s: &mut String, width: f32) -> egui::Respons
 
 pub fn head(ui: &mut egui::Ui, s: &str) {
     ui.label(RichText::new(s).font(semibold(13.0)).color(text_soft()));
-}
-
-pub fn resize_vec<T: Clone>(v: &mut Vec<T>, n: usize, fill: T) {
-    v.resize(n, fill);
-}
-
-pub fn resize_grid(g: &mut Vec<Vec<String>>, rows: usize, cols: usize) {
-    g.resize(rows, vec![String::new(); cols]);
-    for r in g.iter_mut() {
-        r.resize(cols, String::new());
-    }
-}
-
-pub fn resize_names(v: &mut Vec<String>, n: usize, prefix: &str) {
-    let start = v.len();
-    v.truncate(n);
-    for i in start..n {
-        v.push(format!("{}{}", prefix, i + 1));
-    }
 }
 
 fn message_box(ui: &mut egui::Ui, fill: Color32, text: RichText) {

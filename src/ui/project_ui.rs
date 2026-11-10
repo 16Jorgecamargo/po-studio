@@ -1,15 +1,9 @@
 use super::common::*;
 use super::{iterations_view, results_view, solve_bar, tab_bar, title_row, Module, Tab};
-use crate::format::{num, parse_num, parse_or_zero};
-use crate::project::{cpm, normal_cdf, pert, Activity, CpmResult, PertActivity};
+use crate::format::{num, parse_num};
+use crate::project::CpmResult;
+pub use crate::studio::project::ProjectInput;
 use eframe::egui::{self, Align2, CornerRadius, Pos2, Rect, RichText, Stroke, StrokeKind, Vec2};
-use serde::{Deserialize, Serialize};
-
-#[derive(Clone, Serialize, Deserialize)]
-pub struct ProjectInput {
-    pub title: String,
-    pub rows: Vec<Vec<String>>,
-}
 
 pub struct ProjectModule {
     pub pert_mode: bool,
@@ -28,13 +22,9 @@ pub struct ProjectModule {
 
 impl ProjectModule {
     pub fn new(pert_mode: bool) -> Self {
-        let cols = if pert_mode { 6 } else { 4 };
         Self {
             pert_mode,
-            input: ProjectInput {
-                title: String::new(),
-                rows: vec![vec![String::new(); cols]; 5],
-            },
+            input: ProjectInput::blank(pert_mode),
             tab: Tab::Data,
             results: vec![],
             iterations: vec![],
@@ -48,128 +38,22 @@ impl ProjectModule {
         }
     }
 
-    fn cols(&self) -> usize {
-        if self.pert_mode {
-            6
-        } else {
-            4
-        }
-    }
-
     fn headers(&self) -> Vec<&'static str> {
-        if self.pert_mode {
-            vec!["Atividade", "Nó de", "Nó para", "Otimista a", "Mais provável m", "Pessimista b"]
-        } else {
-            vec!["Atividade", "Nó de", "Nó para", "Duração"]
-        }
-    }
-
-    fn filled_rows(&self) -> Vec<&Vec<String>> {
-        self.input.rows.iter().filter(|r| r.iter().skip(1).any(|c| !c.trim().is_empty())).collect()
+        crate::studio::project::headers(self.pert_mode)
     }
 
     fn solve(&mut self) {
         self.error = None;
-        let rows = self.filled_rows();
-        let node = |s: &str| -> usize { parse_num(s).map(|v| v.max(0.0) as usize).unwrap_or(0) };
-        let name = |r: &Vec<String>, k: usize| -> String {
-            if r[0].trim().is_empty() {
-                format!("A{}", k + 1)
-            } else {
-                r[0].trim().to_string()
-            }
-        };
-        let title = if self.input.title.is_empty() { "Sem título".to_string() } else { self.input.title.clone() };
-        let res = if self.pert_mode {
-            let acts: Vec<PertActivity> = rows
-                .iter()
-                .enumerate()
-                .map(|(k, r)| PertActivity {
-                    name: name(r, k),
-                    from: node(&r[1]),
-                    to: node(&r[2]),
-                    a: parse_or_zero(&r[3]),
-                    m: parse_or_zero(&r[4]),
-                    b: parse_or_zero(&r[5]),
-                })
-                .collect();
-            pert(&acts).map(|p| {
-                let mut mv = Section::new("Média e variância das atividades").headers(&["Atividade", "a", "m", "b", "Média", "Variância"]);
-                for (i, a) in acts.iter().enumerate() {
-                    let crit = p.cpm.activities[i].critical;
-                    let st = if crit { CellStyle::RedText } else { CellStyle::Head };
-                    mv.row(vec![cs(a.name.clone(), st), n(a.a), n(a.m), n(a.b), cs(num(p.means[i]), CellStyle::Bold), n(p.variances[i])]);
-                }
-                mv.note("Média = (a + 4m + b) / 6. Variância = ((b − a) / 6)²");
-                let mut path = Section::new("Caminho mais longo pelas durações médias").sub(title.clone());
-                path.line(format!("Caminho: {}", p.path.iter().map(|&i| acts[i].name.clone()).collect::<Vec<_>>().join(" → ")));
-                path.line(format!("Média do caminho = {}. Desvio-padrão do caminho = {}", num(p.path_mean), num(p.path_std)));
-                self.path_stats = Some((p.path_mean, p.path_std));
-                (vec![path, mv], p.cpm)
-            })
-        } else {
-            let acts: Vec<Activity> = rows
-                .iter()
-                .enumerate()
-                .map(|(k, r)| Activity {
-                    name: name(r, k),
-                    from: node(&r[1]),
-                    to: node(&r[2]),
-                    duration: parse_or_zero(&r[3]),
-                })
-                .collect();
-            cpm(&acts).map(|c| {
-                self.path_stats = None;
-                let mut h = Section::new("Cronograma CPM").sub(title.clone());
-                h.line(format!("Duração do projeto = {}", num(c.duration)));
-                (vec![h], c)
-            })
-        };
-        match res {
+        match crate::studio::project::solve(&self.input, self.pert_mode) {
             Err(e) => self.error = Some(e),
-            Ok((mut secs, c)) => {
-                let mut sch = Section::new("Cronograma das atividades").headers(&["Atividade", "De", "Para", "Duração", "Início cedo", "Término cedo", "Início tarde", "Término tarde", "Folga total", "Folga livre"]);
-                for a in &c.activities {
-                    let st = if a.critical { CellStyle::RedText } else { CellStyle::Head };
-                    sch.row(vec![
-                        cs(a.name.clone(), st),
-                        c_(a.from),
-                        c_(a.to),
-                        n(a.duration),
-                        n(a.es),
-                        n(a.ef),
-                        n(a.ls),
-                        n(a.lf),
-                        cs(num(a.total_float), if a.critical { CellStyle::RedText } else { CellStyle::Normal }),
-                        n(a.free_float),
-                    ]);
-                }
-                sch.note("Atividades críticas destacadas em vermelho.");
-                if self.pert_mode {
-                    secs.insert(1, sch);
-                } else {
-                    secs.push(sch);
-                }
-                self.results = secs;
-                let mut fw = Section::new("Passagem para frente (tempos mais cedo dos nós)");
-                for s in &c.forward_steps {
-                    fw.line(s.clone());
-                }
-                fw.note("Passagem para frente concluída.");
-                let mut bw = Section::new("Passagem para trás (tempos mais tarde dos nós)");
-                for s in &c.backward_steps {
-                    bw.line(s.clone());
-                }
-                bw.note("Passagem para trás concluída.");
-                let mut ev = Section::new("Tempos dos eventos").headers(&["Nó", "Mais cedo", "Mais tarde"]);
-                for (i, nd) in c.nodes.iter().enumerate() {
-                    ev.row(vec![cs(nd.to_string(), CellStyle::Head), n(c.early[i]), n(c.late[i])]);
-                }
-                self.iterations = vec![fw, bw, ev];
+            Ok(out) => {
+                self.results = out.results;
+                self.iterations = out.iterations;
+                self.path_stats = out.path_stats;
                 self.shown = 1;
                 self.delay_act = 0;
                 self.delay = 0.0;
-                self.schedule = Some(c);
+                self.schedule = Some(out.schedule);
                 self.tab = Tab::Results;
             }
         }
@@ -205,25 +89,7 @@ impl ProjectModule {
                     ui.label(RichText::new("(máximo = folga total)").small().color(text_muted()));
                 }
             });
-            let a = &acts[self.delay_act];
-            if !a.critical && self.delay > 0.0 {
-                let start = a.es + self.delay;
-                let mut msg = format!(
-                    "ATIVIDADE {}: INÍCIO = {}, ATRASO em relação ao início cedo = {}, FOLGA LIVRE = {}.",
-                    a.name,
-                    num(start),
-                    num(self.delay),
-                    num(a.free_float)
-                );
-                if self.delay > a.free_float + 1e-9 {
-                    let succ: Vec<String> = acts.iter().filter(|b| b.from == a.to).map(|b| b.name.clone()).collect();
-                    msg.push_str(&format!(
-                        " Como o ATRASO excede a FOLGA LIVRE em {}, as atividades seguintes {{{}}} não podem começar antes do tempo {}.",
-                        num(self.delay - a.free_float),
-                        succ.join(", "),
-                        num(start + a.duration)
-                    ));
-                }
+            if let Some(msg) = crate::studio::project::delay_message(acts, self.delay_act, self.delay) {
                 ui.label(RichText::new(msg).color(warn_text()));
             }
         });
@@ -267,10 +133,6 @@ impl ProjectModule {
     }
 }
 
-fn c_(v: usize) -> Cell {
-    c(v.to_string())
-}
-
 impl Module for ProjectModule {
     fn solve_now(&mut self) {
         self.solve();
@@ -297,10 +159,9 @@ impl Module for ProjectModule {
                     ui.add_space(6.0);
                     let mut k = self.input.rows.len();
                     if stepper(ui, "Nº de atividades", &mut k, 1, crate::mechanics::MAX_PROBLEM_SIZE) {
-                        let cols = self.cols();
-                        self.input.rows.resize(k, vec![String::new(); cols]);
+                        self.input.set_count(k, self.pert_mode);
                     }
-                    ui.label(RichText::new("Cada atividade liga um nó (evento) a outro. Numere os nós a partir de 1.").small().color(text_muted()));
+                    ui.label(RichText::new(crate::studio::PROJECT_HINT).small().color(text_muted()));
                 });
                 ui.add_space(10.0);
                 let headers = self.headers();
@@ -337,7 +198,7 @@ impl Module for ProjectModule {
                             ui.label("Prazo T:");
                             ui.add(egui::TextEdit::singleline(&mut self.prob_time).desired_width(80.0));
                             if let Some(t) = parse_num(&self.prob_time) {
-                                let p = if sd > 0.0 { normal_cdf((t - mean) / sd) } else if t >= mean { 1.0 } else { 0.0 };
+                                let p = crate::studio::project::deadline_probability(mean, sd, t);
                                 ui.label(RichText::new(format!("P(duração ≤ {}) = {}", num(t), num(p))).font(mono_bold(14.0)).color(accent()));
                             }
                         });
@@ -351,13 +212,7 @@ impl Module for ProjectModule {
     }
 
     fn report(&self) -> Option<String> {
-        if self.results.is_empty() {
-            return None;
-        }
-        let mut all = self.results.clone();
-        all.extend(self.iterations.iter().cloned());
-        let t = if self.pert_mode { "PLANEJAMENTO DE PROJETOS: PERT" } else { "PLANEJAMENTO DE PROJETOS: CPM" };
-        Some(sections_to_text(&format!("{}: {}", t, self.input.title), &all))
+        crate::studio::project::report(&self.input, self.pert_mode, &self.results, &self.iterations)
     }
 
     fn save_json(&self) -> serde_json::Value {
@@ -366,10 +221,7 @@ impl Module for ProjectModule {
 
     fn load_json(&mut self, v: serde_json::Value) -> Result<(), String> {
         let mut inp: ProjectInput = serde_json::from_value(v).map_err(|e| e.to_string())?;
-        let cols = self.cols();
-        for r in inp.rows.iter_mut() {
-            r.resize(cols, String::new());
-        }
+        inp.fit(self.pert_mode);
         self.input = inp;
         self.results.clear();
         self.iterations.clear();
@@ -379,11 +231,7 @@ impl Module for ProjectModule {
     }
 
     fn new_problem(&mut self) {
-        let cols = self.cols();
-        self.input = ProjectInput {
-            title: String::new(),
-            rows: vec![vec![String::new(); cols]; 5],
-        };
+        self.input = ProjectInput::blank(self.pert_mode);
         self.results.clear();
         self.iterations.clear();
         self.schedule = None;
@@ -392,31 +240,7 @@ impl Module for ProjectModule {
     }
 
     fn load_example(&mut self) {
-        let rows: Vec<Vec<&str>> = if self.pert_mode {
-            vec![
-                vec!["A", "1", "2", "2", "4", "6"],
-                vec!["B", "1", "3", "3", "5", "9"],
-                vec!["C", "2", "4", "1", "2", "3"],
-                vec!["D", "3", "4", "4", "6", "10"],
-                vec!["E", "2", "5", "5", "7", "9"],
-                vec!["F", "4", "5", "2", "3", "4"],
-                vec!["G", "5", "6", "1", "2", "5"],
-            ]
-        } else {
-            vec![
-                vec!["A", "1", "2", "4"],
-                vec!["B", "1", "3", "6"],
-                vec!["C", "2", "4", "3"],
-                vec!["D", "3", "4", "5"],
-                vec!["E", "2", "5", "8"],
-                vec!["F", "4", "5", "2"],
-                vec!["G", "5", "6", "3"],
-            ]
-        };
-        self.input = ProjectInput {
-            title: "Projeto de exemplo".into(),
-            rows: rows.iter().map(|r| r.iter().map(|s| s.to_string()).collect()).collect(),
-        };
+        self.input = ProjectInput::example(self.pert_mode);
         self.results.clear();
         self.iterations.clear();
         self.schedule = None;

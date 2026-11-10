@@ -15,26 +15,7 @@ use std::sync::{Arc, Mutex};
 
 pub const APP_NAME: &str = "PO Studio";
 
-struct ModuleInfo {
-    group: &'static str,
-    name: &'static str,
-    blurb: &'static str,
-}
-
-const MODULES: [ModuleInfo; 12] = [
-    ModuleInfo { group: "Álgebra", name: "Equações lineares", blurb: "Resolve sistemas de equações simultâneas e calcula o determinante." },
-    ModuleInfo { group: "Álgebra", name: "Inversão de matriz", blurb: "Inversa e determinante de uma matriz quadrada." },
-    ModuleInfo { group: "Otimização", name: "Programação linear", blurb: "Simplex (folgas, M grande, duas fases, dual), sensibilidade e método gráfico." },
-    ModuleInfo { group: "Otimização", name: "Programação inteira", blurb: "Branch & Bound com árvore de busca interativa." },
-    ModuleInfo { group: "Otimização", name: "Modelo de transporte", blurb: "Noroeste, custo mínimo e Vogel, com quadros de iteração." },
-    ModuleInfo { group: "Redes", name: "Árvore geradora mínima", blurb: "Conecta todos os nós com o menor comprimento total." },
-    ModuleInfo { group: "Redes", name: "Caminho mais curto", blurb: "Algoritmos de Dijkstra e de Floyd." },
-    ModuleInfo { group: "Redes", name: "Fluxo máximo", blurb: "Maior fluxo possível da origem ao destino." },
-    ModuleInfo { group: "Projetos", name: "CPM", blurb: "Caminho crítico, folgas e gráfico de barras." },
-    ModuleInfo { group: "Projetos", name: "PERT", blurb: "Durações incertas, média, variância e probabilidade de prazo." },
-    ModuleInfo { group: "Probabilidade", name: "Filas", blurb: "Modelos (M/M/c):(GD/N/K), nascimento e morte puros." },
-    ModuleInfo { group: "Probabilidade", name: "Jogos de soma zero", blurb: "Estratégias ótimas por PL e solução gráfica." },
-];
+use crate::studio::MODULES;
 
 pub struct OrApp {
     modules: Vec<Box<dyn Module>>,
