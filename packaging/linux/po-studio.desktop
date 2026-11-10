@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=PO Studio
+Comment=Pesquisa operacional: programação linear, transporte, redes, filas e jogos
+Exec=po-studio
+Icon=po-studio
+Terminal=false
+Categories=Education;Science;Math;
+StartupWMClass=po-studio
